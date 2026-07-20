@@ -2,6 +2,12 @@
 -- IT Help Desk & Ticketing Management System — Database Schema
 -- Engine: MySQL 8.x (InnoDB, utf8mb4)
 -- Matches: docs/erd/IT_Helpdesk_ERD.drawio
+--
+-- Convention: every table's primary key is simply `Id`. Foreign key
+-- columns keep descriptive names (e.g. RoleId, CategoryId,
+-- CreatedByUserId) but always reference the target table's `Id`
+-- column. This matches Laravel's default convention
+-- ($table->id() / $table->foreignId('role_id')->constrained()).
 -- =====================================================================
 
 SET NAMES utf8mb4;
@@ -12,28 +18,28 @@ SET FOREIGN_KEY_CHECKS = 0;
 -- ---------------------------------------------------------------------
 
 CREATE TABLE Roles (
-    RoleId       INT AUTO_INCREMENT PRIMARY KEY,
+    Id           INT AUTO_INCREMENT PRIMARY KEY,
     RoleName     VARCHAR(50)  NOT NULL UNIQUE,
     Description  VARCHAR(255) NULL,
     CreatedAt    DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB;
 
 CREATE TABLE Categories (
-    CategoryId   INT AUTO_INCREMENT PRIMARY KEY,
+    Id           INT AUTO_INCREMENT PRIMARY KEY,
     CategoryName VARCHAR(100) NOT NULL UNIQUE,
     Description  VARCHAR(255) NULL,
     IsActive     TINYINT(1) NOT NULL DEFAULT 1
 ) ENGINE=InnoDB;
 
 CREATE TABLE Priorities (
-    PriorityId   INT AUTO_INCREMENT PRIMARY KEY,
+    Id           INT AUTO_INCREMENT PRIMARY KEY,
     PriorityName VARCHAR(50) NOT NULL UNIQUE,
     SlaHours     INT NULL,
     ColorCode    VARCHAR(10) NULL
 ) ENGINE=InnoDB;
 
 CREATE TABLE Statuses (
-    StatusId     INT AUTO_INCREMENT PRIMARY KEY,
+    Id           INT AUTO_INCREMENT PRIMARY KEY,
     StatusName   VARCHAR(50) NOT NULL UNIQUE,
     Description  VARCHAR(255) NULL,
     DisplayOrder INT NOT NULL DEFAULT 0
@@ -44,7 +50,7 @@ CREATE TABLE Statuses (
 -- ---------------------------------------------------------------------
 
 CREATE TABLE Users (
-    UserId       INT AUTO_INCREMENT PRIMARY KEY,
+    Id           INT AUTO_INCREMENT PRIMARY KEY,
     RoleId       INT NOT NULL,
     FullName     VARCHAR(150) NOT NULL,
     Email        VARCHAR(150) NOT NULL UNIQUE,
@@ -54,7 +60,7 @@ CREATE TABLE Users (
     IsActive     TINYINT(1) NOT NULL DEFAULT 1,
     CreatedAt    DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     UpdatedAt    DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    CONSTRAINT fk_users_role FOREIGN KEY (RoleId) REFERENCES Roles(RoleId)
+    CONSTRAINT fk_users_role FOREIGN KEY (RoleId) REFERENCES Roles(Id)
 ) ENGINE=InnoDB;
 
 -- ---------------------------------------------------------------------
@@ -62,7 +68,7 @@ CREATE TABLE Users (
 -- ---------------------------------------------------------------------
 
 CREATE TABLE Tickets (
-    TicketId          INT AUTO_INCREMENT PRIMARY KEY,
+    Id                INT AUTO_INCREMENT PRIMARY KEY,
     TicketReferenceNo VARCHAR(20) NOT NULL UNIQUE,
     Title              VARCHAR(200) NOT NULL,
     Description        TEXT NOT NULL,
@@ -77,11 +83,11 @@ CREATE TABLE Tickets (
     ResolvedAt         DATETIME NULL,
     ClosedAt           DATETIME NULL,
     IsDeleted          TINYINT(1) NOT NULL DEFAULT 0,
-    CONSTRAINT fk_tickets_category   FOREIGN KEY (CategoryId)       REFERENCES Categories(CategoryId),
-    CONSTRAINT fk_tickets_priority   FOREIGN KEY (PriorityId)       REFERENCES Priorities(PriorityId),
-    CONSTRAINT fk_tickets_status     FOREIGN KEY (StatusId)         REFERENCES Statuses(StatusId),
-    CONSTRAINT fk_tickets_creator    FOREIGN KEY (CreatedByUserId)  REFERENCES Users(UserId),
-    CONSTRAINT fk_tickets_assignee   FOREIGN KEY (AssignedToUserId) REFERENCES Users(UserId),
+    CONSTRAINT fk_tickets_category   FOREIGN KEY (CategoryId)       REFERENCES Categories(Id),
+    CONSTRAINT fk_tickets_priority   FOREIGN KEY (PriorityId)       REFERENCES Priorities(Id),
+    CONSTRAINT fk_tickets_status     FOREIGN KEY (StatusId)         REFERENCES Statuses(Id),
+    CONSTRAINT fk_tickets_creator    FOREIGN KEY (CreatedByUserId)  REFERENCES Users(Id),
+    CONSTRAINT fk_tickets_assignee   FOREIGN KEY (AssignedToUserId) REFERENCES Users(Id),
     INDEX idx_tickets_status (StatusId),
     INDEX idx_tickets_priority (PriorityId),
     INDEX idx_tickets_assignee (AssignedToUserId)
@@ -92,15 +98,15 @@ CREATE TABLE Tickets (
 -- ---------------------------------------------------------------------
 
 CREATE TABLE TicketComments (
-    CommentId      INT AUTO_INCREMENT PRIMARY KEY,
+    Id             INT AUTO_INCREMENT PRIMARY KEY,
     TicketId       INT NOT NULL,
     UserId         INT NOT NULL,
     CommentText    TEXT NOT NULL,
     IsInternalNote TINYINT(1) NOT NULL DEFAULT 0,
     CreatedAt      DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     UpdatedAt      DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    CONSTRAINT fk_comments_ticket FOREIGN KEY (TicketId) REFERENCES Tickets(TicketId) ON DELETE CASCADE,
-    CONSTRAINT fk_comments_user   FOREIGN KEY (UserId)   REFERENCES Users(UserId),
+    CONSTRAINT fk_comments_ticket FOREIGN KEY (TicketId) REFERENCES Tickets(Id) ON DELETE CASCADE,
+    CONSTRAINT fk_comments_user   FOREIGN KEY (UserId)   REFERENCES Users(Id),
     INDEX idx_comments_ticket (TicketId)
 ) ENGINE=InnoDB;
 
@@ -109,7 +115,7 @@ CREATE TABLE TicketComments (
 -- ---------------------------------------------------------------------
 
 CREATE TABLE TicketAttachments (
-    AttachmentId     INT AUTO_INCREMENT PRIMARY KEY,
+    Id               INT AUTO_INCREMENT PRIMARY KEY,
     TicketId         INT NOT NULL,
     CommentId        INT NULL,
     FileName         VARCHAR(255) NOT NULL,
@@ -118,9 +124,9 @@ CREATE TABLE TicketAttachments (
     FileSizeKb       INT NULL,
     UploadedByUserId INT NOT NULL,
     UploadedAt       DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    CONSTRAINT fk_attachments_ticket   FOREIGN KEY (TicketId)         REFERENCES Tickets(TicketId) ON DELETE CASCADE,
-    CONSTRAINT fk_attachments_comment  FOREIGN KEY (CommentId)        REFERENCES TicketComments(CommentId) ON DELETE SET NULL,
-    CONSTRAINT fk_attachments_uploader FOREIGN KEY (UploadedByUserId) REFERENCES Users(UserId),
+    CONSTRAINT fk_attachments_ticket   FOREIGN KEY (TicketId)         REFERENCES Tickets(Id) ON DELETE CASCADE,
+    CONSTRAINT fk_attachments_comment  FOREIGN KEY (CommentId)        REFERENCES TicketComments(Id) ON DELETE SET NULL,
+    CONSTRAINT fk_attachments_uploader FOREIGN KEY (UploadedByUserId) REFERENCES Users(Id),
     INDEX idx_attachments_ticket (TicketId)
 ) ENGINE=InnoDB;
 
@@ -129,7 +135,7 @@ CREATE TABLE TicketAttachments (
 -- ---------------------------------------------------------------------
 
 CREATE TABLE Notifications (
-    NotificationId   INT AUTO_INCREMENT PRIMARY KEY,
+    Id               INT AUTO_INCREMENT PRIMARY KEY,
     UserId           INT NOT NULL,
     TicketId         INT NULL,
     Title            VARCHAR(150) NOT NULL,
@@ -137,8 +143,8 @@ CREATE TABLE Notifications (
     NotificationType VARCHAR(50) NOT NULL,
     IsRead           TINYINT(1) NOT NULL DEFAULT 0,
     CreatedAt        DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    CONSTRAINT fk_notifications_user   FOREIGN KEY (UserId)   REFERENCES Users(UserId) ON DELETE CASCADE,
-    CONSTRAINT fk_notifications_ticket FOREIGN KEY (TicketId) REFERENCES Tickets(TicketId) ON DELETE SET NULL,
+    CONSTRAINT fk_notifications_user   FOREIGN KEY (UserId)   REFERENCES Users(Id) ON DELETE CASCADE,
+    CONSTRAINT fk_notifications_ticket FOREIGN KEY (TicketId) REFERENCES Tickets(Id) ON DELETE SET NULL,
     INDEX idx_notifications_user (UserId, IsRead)
 ) ENGINE=InnoDB;
 
@@ -147,7 +153,7 @@ CREATE TABLE Notifications (
 -- ---------------------------------------------------------------------
 
 CREATE TABLE ActivityLogs (
-    LogId             INT AUTO_INCREMENT PRIMARY KEY,
+    Id                 INT AUTO_INCREMENT PRIMARY KEY,
     UserId             INT NOT NULL,
     TicketId           INT NULL,
     ActionType         VARCHAR(50) NOT NULL,
@@ -156,8 +162,8 @@ CREATE TABLE ActivityLogs (
     NewValue           VARCHAR(255) NULL,
     IpAddress          VARCHAR(50) NULL,
     CreatedAt          DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    CONSTRAINT fk_activitylogs_user   FOREIGN KEY (UserId)   REFERENCES Users(UserId),
-    CONSTRAINT fk_activitylogs_ticket FOREIGN KEY (TicketId) REFERENCES Tickets(TicketId) ON DELETE SET NULL,
+    CONSTRAINT fk_activitylogs_user   FOREIGN KEY (UserId)   REFERENCES Users(Id),
+    CONSTRAINT fk_activitylogs_ticket FOREIGN KEY (TicketId) REFERENCES Tickets(Id) ON DELETE SET NULL,
     INDEX idx_activitylogs_ticket (TicketId)
 ) ENGINE=InnoDB;
 
@@ -166,17 +172,17 @@ CREATE TABLE ActivityLogs (
 -- ---------------------------------------------------------------------
 
 CREATE TABLE TicketAssignmentHistory (
-    AssignmentId       INT AUTO_INCREMENT PRIMARY KEY,
+    Id                 INT AUTO_INCREMENT PRIMARY KEY,
     TicketId           INT NOT NULL,
     AssignedFromUserId INT NULL,
     AssignedToUserId   INT NOT NULL,
     AssignedByUserId   INT NOT NULL,
     AssignmentType     VARCHAR(20) NOT NULL DEFAULT 'Manual', -- Manual | Auto | Escalation
     AssignedAt         DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    CONSTRAINT fk_assignhist_ticket FOREIGN KEY (TicketId)           REFERENCES Tickets(TicketId) ON DELETE CASCADE,
-    CONSTRAINT fk_assignhist_from   FOREIGN KEY (AssignedFromUserId) REFERENCES Users(UserId),
-    CONSTRAINT fk_assignhist_to     FOREIGN KEY (AssignedToUserId)   REFERENCES Users(UserId),
-    CONSTRAINT fk_assignhist_by     FOREIGN KEY (AssignedByUserId)   REFERENCES Users(UserId),
+    CONSTRAINT fk_assignhist_ticket FOREIGN KEY (TicketId)           REFERENCES Tickets(Id) ON DELETE CASCADE,
+    CONSTRAINT fk_assignhist_from   FOREIGN KEY (AssignedFromUserId) REFERENCES Users(Id),
+    CONSTRAINT fk_assignhist_to     FOREIGN KEY (AssignedToUserId)   REFERENCES Users(Id),
+    CONSTRAINT fk_assignhist_by     FOREIGN KEY (AssignedByUserId)   REFERENCES Users(Id),
     INDEX idx_assignhist_ticket (TicketId)
 ) ENGINE=InnoDB;
 
@@ -185,7 +191,7 @@ CREATE TABLE TicketAssignmentHistory (
 -- ---------------------------------------------------------------------
 
 CREATE TABLE KnowledgeBaseArticles (
-    ArticleId        INT AUTO_INCREMENT PRIMARY KEY,
+    Id               INT AUTO_INCREMENT PRIMARY KEY,
     CategoryId       INT NOT NULL,
     AuthorUserId     INT NOT NULL,
     ApprovedByUserId INT NULL,
@@ -195,9 +201,9 @@ CREATE TABLE KnowledgeBaseArticles (
     ViewCount        INT NOT NULL DEFAULT 0,
     CreatedAt        DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     UpdatedAt        DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    CONSTRAINT fk_kb_category FOREIGN KEY (CategoryId)       REFERENCES Categories(CategoryId),
-    CONSTRAINT fk_kb_author   FOREIGN KEY (AuthorUserId)     REFERENCES Users(UserId),
-    CONSTRAINT fk_kb_approver FOREIGN KEY (ApprovedByUserId) REFERENCES Users(UserId)
+    CONSTRAINT fk_kb_category FOREIGN KEY (CategoryId)       REFERENCES Categories(Id),
+    CONSTRAINT fk_kb_author   FOREIGN KEY (AuthorUserId)     REFERENCES Users(Id),
+    CONSTRAINT fk_kb_approver FOREIGN KEY (ApprovedByUserId) REFERENCES Users(Id)
 ) ENGINE=InnoDB;
 
 SET FOREIGN_KEY_CHECKS = 1;
